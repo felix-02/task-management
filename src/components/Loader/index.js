@@ -1,8 +1,6 @@
 import React from "react";
 import styled, { keyframes } from "styled-components";
 
-import PropTypes from "prop-types";
-
 const loader = {
   "0%": {
     transform: "perspective(120px) rotateX(0deg) rotateY(0deg)",
@@ -24,13 +22,8 @@ const StyledDiv = styled.div`
   animation: ${loadingAnimation} 1.2s infinite ease-in-out;
 `;
 
-const Loader = ({ color, size, ...rest }) => {
-  return <StyledDiv color={color} size={size} />;
-};
-
-Loader.propTypes = {
-  color: PropTypes.string,
-  size: PropTypes.string,
+const Loader = () => {
+  return <StyledDiv />;
 };
 
 export default Loader;

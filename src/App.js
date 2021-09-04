@@ -1,8 +1,11 @@
-import Tasks from "./pages/tasks";
-
-import { useSelector, useDispatch } from "react-redux";
-import Toast from "./components/Toast";
 import { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+
+import Toast from "./components/Toast";
+
+import ApiClient from "./api";
+import { setAuth } from "./redux/authReducer";
+import Tasks from "./pages/tasks";
 
 function App() {
   const toast = useSelector((state) => state.toast);
@@ -11,53 +14,45 @@ function App() {
   useEffect(() => {
     const getAuthDetails = () => {
       dispatch(async (dispatch) => {
-        // fetch token
-        const authToken = await fetch("https://stage.api.sloovi.com/login", {
-          method: "POST",
-          headers: {
+        const authData = await ApiClient(
+          `${process.env.REACT_APP_BASE_URL}/login`,
+          "POST",
+          {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
+          {
             email: "good@test3.com",
             password: "12345678",
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => data.results.token);
-
-        const userId = await fetch(
-          "https://stage.api.sloovi.com/user?company_id=company_0336d06ff0ec4b3b9306ddc288482663&product=outreach",
-          {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + authToken,
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
           }
-        )
-          .then((res) => res.json())
-          .then((data) => data.results.user_id);
+        );
+        const authToken = await authData.results.token;
 
-        const userDropDown = await fetch(
-          "https://stage.api.sloovi.com/team?company_id=company_0336d06ff0ec4b3b9306ddc288482663&product=outreach",
+        const userData = await ApiClient(
+          `${process.env.REACT_APP_BASE_URL}/user?company_id=${process.env.REACT_APP_COMPANY_ID}&product=outreach`,
+          "GET",
           {
-            method: "GET",
-            headers: {
-              Authorization: "Bearer " + authToken,
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
+            Authorization: "Bearer " + authToken,
+            Accept: "application/json",
+            "Content-Type": "application/json",
           }
-        )
-          .then((res) => res.json())
-          .then((data) => data.results.data);
+        );
+        const userId = await userData.results.user_id;
 
-        dispatch({
-          type: "SET_AUTH",
-          payload: { token: authToken, id: userId, users: userDropDown },
-        });
+        const userDropDownData = await ApiClient(
+          `${process.env.REACT_APP_BASE_URL}/team?company_id=${process.env.REACT_APP_COMPANY_ID}&product=outreach`,
+          "GET",
+          {
+            Authorization: "Bearer " + authToken,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          }
+        );
+        const userDropDown = await userDropDownData.results.data;
+
+        dispatch(
+          setAuth({ token: authToken, id: userId, users: userDropDown })
+        );
       });
     };
 

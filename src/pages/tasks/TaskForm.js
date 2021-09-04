@@ -1,16 +1,20 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { useDispatch, useSelector } from "react-redux";
+import ReactTooltip from "react-tooltip";
 
-import { addTodos, editTodos } from "../../redux/todoReducer";
+// Core imports
+import { addTask, editTask } from "../../redux/taskReducer";
 import ApiClient from "../../api";
+import { showToast } from "../../redux/toastReducer";
 
 const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 0.2rem 0.5rem;
-  background: #f5fcff;
+  gap: 15px;
+  padding: 1rem 0.8rem;
+
+  background: #f0f8ff;
 
   & input,
   & select {
@@ -35,34 +39,58 @@ const StyledForm = styled.form`
     border-radius: 5px;
     border: 1px solid #c7c7c7;
   }
-  & button {
+  & button:not(:first-child) {
     padding: 10px 20px;
     border-radius: 5px;
-    border: 1px solid transparent;
-    background: #5dbb36;
+
     color: #fff;
   }
-  & button:hover {
-    cursor: pointer;
-  }
+
   & button:not(:last-child) {
     margin-right: 10px;
-    border: none;
     background: transparent;
-    color: black;
   }
+
   & > div:last-child {
     display: flex;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     & > div.btn-group {
       margin-left: auto;
     }
   }
+  & .trash-icon {
+    color: grey;
+  }
 `;
 
-const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
+const StyledSaveButton = styled.button`
+  border: 1px solid transparent;
+  background: ${(props) => (props.disabled ? "grey" : "#19916B")};
+  &:hover {
+    cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  }
+`;
+const StyledCancelButton = styled.button`
+  border: ${(props) => (props.disabled ? "1px solid #c8c8c8" : "none")};
+  &:hover {
+    cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  }
+`;
+const StyledTrashButton = styled.button`
+  color: grey;
+  margin-left: 5px;
+  font-size: 16px;
+  padding: 10px 0;
+  border: none;
+  &:hover {
+    cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  }
+`;
+
+const TaskForm = ({ setShowForm, showForm, setShowModal }) => {
   const authState = useSelector((state) => state.auth);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [task, setTask] = useState({
     task_msg: showForm.data?.task_msg || "",
@@ -72,12 +100,15 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
       : "",
     task_date: showForm.data?.task_date || "",
     id: showForm.data?.id || "",
+    is_completed: showForm.data?.is_completed || 0,
+    time_zone: showForm.data?.time_zone || 19800,
   });
 
   const dispatch = useDispatch();
 
   const handleAddTask = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       let url;
       let method;
@@ -93,39 +124,39 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
           task.task_time.split(":")[1] * 60,
         task_date: task.task_date,
         assigned_user: task.assigned_user,
-        is_completed: 0,
-        time_zone: 19800,
+        is_completed: task.is_completed,
+        time_zone: task.time_zone,
       };
       if (task.id) {
-        url = `https://stage.api.sloovi.com/task/lead_c1de2c7b9ab94cb9abad131b7294cd8b/${task.id}?company_id=company_0336d06ff0ec4b3b9306ddc288482663`;
+        url = `${process.env.REACT_APP_BASE_URL}/task/lead_c1de2c7b9ab94cb9abad131b7294cd8b/${task.id}?company_id=${process.env.REACT_APP_COMPANY_ID}`;
         method = "PUT";
       } else {
-        url =
-          "https://stage.api.sloovi.com/task/lead_c1de2c7b9ab94cb9abad131b7294cd8b?company_id=company_0336d06ff0ec4b3b9306ddc288482663";
+        url = `${process.env.REACT_APP_BASE_URL}/task/lead_c1de2c7b9ab94cb9abad131b7294cd8b?company_id=${process.env.REACT_APP_COMPANY_ID}`;
         method = "POST";
       }
 
       const data = await ApiClient(url, method, headers, payload);
-      dispatch(task.id ? editTodos(data.results) : addTodos(data.results));
-      dispatch({
-        type: "SHOW_TOAST",
-        payload: {
+      dispatch(task.id ? editTask(data.results) : addTask(data.results));
+      dispatch(
+        showToast({
           visible: true,
           message: task.id
-            ? "Task edit successfully!"
+            ? "Task edited successfully!"
             : "Task created successfully!",
           background: "#5dbb36",
-        },
-      });
+        })
+      );
     } catch (err) {
-      dispatch({
-        type: "SHOW_TOAST",
-        payload: {
-          visible: true,
-          message: "Something failed. please try again later",
-          background: "red",
-        },
-      });
+      dispatch(
+        showToast({
+          type: "SHOW_TOAST",
+          payload: {
+            visible: true,
+            message: "Something failed. please try again later",
+            background: "red",
+          },
+        })
+      );
     } finally {
       setTask({
         task_msg: "",
@@ -135,6 +166,7 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
         id: "",
       });
       setShowForm({ visible: false, data: {} });
+      setIsSubmitting(false);
     }
   };
 
@@ -155,6 +187,7 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
             type="text"
             value={task.task_msg}
             onChange={handleFieldChange}
+            disabled={isSubmitting}
           />
         </label>
       </div>
@@ -169,6 +202,7 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
               type="date"
               id="task_date"
               name="task_date"
+              disabled={isSubmitting}
             />
           </label>
         </div>
@@ -182,7 +216,8 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
               type="time"
               id="task_time"
               name="task_time"
-            ></input>
+              disabled={isSubmitting}
+            />
           </label>
         </div>
       </div>
@@ -190,6 +225,7 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
         <label>
           Assign User
           <select
+            disabled={isSubmitting}
             onChange={handleFieldChange}
             name="assigned_user"
             value={task.assigned_user}
@@ -209,36 +245,55 @@ const CreateNewTaskForm = ({ setShowForm, showForm, setShowModal }) => {
 
       <div>
         {task.id && (
-          <p
-            onClick={() => {
-              setShowModal({ visible: true, data: task });
-            }}
-          >
-            <i class="fas fa-trash-alt"></i>
-          </p>
+          <>
+            <StyledTrashButton
+              type="button"
+              className="trash-icon"
+              onClick={() => {
+                setShowModal({
+                  visible: true,
+                  data: task,
+                  type: "DELETE_TASK",
+                });
+              }}
+              data-tip
+              data-for="deleteTip"
+              disabled={isSubmitting}
+            >
+              <i className="fas fa-trash-alt"></i>
+            </StyledTrashButton>
+            <ReactTooltip id="deleteTip" place="top" effect="solid">
+              Delete Task
+            </ReactTooltip>
+          </>
         )}
         <div className="btn-group">
-          <button
+          <StyledCancelButton
             type="button"
             onClick={() => {
               setShowForm({ visible: false, data: {} });
             }}
+            disabled={isSubmitting}
           >
             Cancel
-          </button>
+          </StyledCancelButton>
 
-          <button
+          <StyledSaveButton
             disabled={
-              task.date === "" || task.task_msg === "" || task.task_time === ""
+              isSubmitting ||
+              task.task_date === "" ||
+              task.task_msg === "" ||
+              task.task_time === "" ||
+              task.assigned_user === ""
             }
             type="submit"
           >
             Save
-          </button>
+          </StyledSaveButton>
         </div>
       </div>
     </StyledForm>
   );
 };
 
-export default CreateNewTaskForm;
+export default TaskForm;

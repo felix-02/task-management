@@ -1,7 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom";
-// import "./modal.scss";
-// import Close from "./times-solid.svg";
 import styled from "styled-components";
 
 const StyledWrapper = styled.div`
@@ -85,11 +83,11 @@ const Modal = ({ show, close, title, children, onConfirm }) => {
   return ReactDOM.createPortal(
     <>
       {show ? (
-        <StyledWrapper onClick={() => close()}>
+        <StyledWrapper onClick={close}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <header className="modal_header">
               <h2 className="modal_header-title"> {title} </h2>
-              <span onClick={() => close()}>&#x2718;</span>
+              <span onClick={close}>&#x2718;</span>
             </header>
             <main className="modal_content"> {children} </main>
             <footer className="modal_footer">

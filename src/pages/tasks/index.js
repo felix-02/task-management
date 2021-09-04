@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
-import TodaysTask from "./TodaysTask";
-
 import styled from "styled-components";
-import Sidebar from "../../components/Sidebar";
+
+// Core imports
+import Sidebar from "../../Layout/Sidebar";
 import Header from "../../components/Header";
-import MainContent from "../../components/MainContent";
-import { useEffect } from "react";
+import MainContent from "../../Layout/MainContent";
+import Loader from "../../components/Loader";
+
 import ApiClient from "../../api";
+import Task from "./Task";
+import { setTask } from "../../redux/taskReducer";
+import { showToast } from "../../redux/toastReducer";
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -21,8 +24,15 @@ const StyledLayoutWrapper = styled.div`
   display: flex;
 `;
 
+const StyledLoaderWrapper = styled.div`
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+`;
+
 const Tasks = () => {
-  const todos = useSelector((state) => state.task);
+  const tasks = useSelector((state) => state.task);
   const { token } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
@@ -31,7 +41,7 @@ const Tasks = () => {
       const getAllTasks = async () => {
         try {
           const data = await ApiClient(
-            "https://stage.api.sloovi.com/task/lead_c1de2c7b9ab94cb9abad131b7294cd8b?company_id=company_0336d06ff0ec4b3b9306ddc288482663",
+            `${process.env.REACT_APP_BASE_URL}/task/lead_c1de2c7b9ab94cb9abad131b7294cd8b?company_id=${process.env.REACT_APP_COMPANY_ID}`,
             "GET",
             {
               Authorization: "Bearer " + token,
@@ -39,16 +49,15 @@ const Tasks = () => {
               "Content-Type": "application/json",
             }
           );
-          dispatch({ type: "SET_TASKS", payload: data.results });
+          dispatch(setTask(data.results));
         } catch (err) {
-          dispatch({
-            type: "SHOW_TOAST",
-            payload: {
+          dispatch(
+            showToast({
               visible: true,
               message: "Failed to fetch tasks",
               background: "red",
-            },
-          });
+            })
+          );
         }
       };
 
@@ -60,10 +69,18 @@ const Tasks = () => {
     <StyledLayoutWrapper>
       <Sidebar />
       <StyledWrapper>
-        <Header />
-        <MainContent>
-          <TodaysTask todos={todos} />
-        </MainContent>
+        {tasks.length === 0 ? (
+          <StyledLoaderWrapper>
+            <Loader />
+          </StyledLoaderWrapper>
+        ) : (
+          <>
+            <Header />
+            <MainContent>
+              <Task tasks={tasks} />
+            </MainContent>
+          </>
+        )}
       </StyledWrapper>
     </StyledLayoutWrapper>
   );

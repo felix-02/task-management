@@ -2,10 +2,10 @@ import { applyMiddleware, combineReducers, createStore } from "redux";
 import thunk from "redux-thunk";
 import authReducer from "../authReducer";
 import toastReducer from "../toastReducer";
-import todoReducer from "../todoReducer";
+import taskReducer from "../taskReducer";
 
 const rootReducer = combineReducers({
-  task: todoReducer,
+  task: taskReducer,
   toast: toastReducer,
   auth: authReducer,
 });
