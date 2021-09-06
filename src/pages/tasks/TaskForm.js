@@ -95,8 +95,8 @@ const TaskForm = ({ setShowForm, showForm, setShowModal }) => {
   const [task, setTask] = useState({
     task_msg: showForm.data?.task_msg || "",
     assigned_user: showForm.data?.assigned_user || "",
-    task_time: showForm.data?.task_date_time_in_utc_string
-      ? showForm.data?.task_date_time_in_utc_string?.split(" ")[1]
+    task_time: showForm.data?.task_time
+      ? new Date(showForm.data.task_time * 1000).toISOString().substr(11, 8)
       : "",
     task_date: showForm.data?.task_date || "",
     id: showForm.data?.id || "",
@@ -288,7 +288,7 @@ const TaskForm = ({ setShowForm, showForm, setShowModal }) => {
             }
             type="submit"
           >
-            Save
+            {isSubmitting ? "Saving..." : "Save"}
           </StyledSaveButton>
         </div>
       </div>
